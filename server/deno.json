@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@hono/hono": "jsr:@hono/hono@4.8.12",
+    "redis": "https://deno.land/x/redis@v0.32.5/mod.ts"
+  }
+}

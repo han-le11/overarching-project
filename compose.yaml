@@ -1,0 +1,47 @@
+services:
+  database:
+    container_name: postgresql_database
+    image: postgres:17.0
+    restart: unless-stopped
+    env_file:
+      - project.env
+
+  database-migrations:
+    image: flyway/flyway:10
+    env_file:
+      - project.env
+    depends_on:
+      - database
+    volumes:
+      - ./database-migrations:/flyway/sql
+    command: -connectRetries=60 -baselineOnMigrate=true migrate
+
+  server:
+    build: server
+    restart: unless-stopped
+    env_file:
+      - project.env
+    volumes:
+      - ./server:/app
+    deploy:
+      replicas: 1
+    depends_on:
+      - database
+
+  redis:
+    image: redis:7.4.2
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+        - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+
+  grader:
+    build: grader
+    restart: unless-stopped
+    env_file:
+      - project.env
+    volumes:
+      - ./grader:/app
+    depends_on:
+      - server
+      - redis
+      - database
