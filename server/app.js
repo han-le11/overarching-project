@@ -50,6 +50,7 @@ app.use("/*", logger());
 let languagesCache = null;
 const exercisesCache = new Map();
 
+// Retrieve all programming languages
 app.get("/api/languages", async (c) => {
   if (languagesCache) {
     return c.json(languagesCache);
@@ -64,6 +65,7 @@ app.get("/api/languages", async (c) => {
   return c.json(languagesCache);
 });
 
+// Retrieve all exercises for a specific programming language
 app.get("/api/languages/:id/exercises", async (c) => {
   const idParam = c.req.param("id");  // get the language id
   const languageId = Number(idParam);
@@ -86,6 +88,34 @@ app.get("/api/languages/:id/exercises", async (c) => {
   return c.json(rows);
 });
 
+// Retrieve a single exercise by id
+app.get("/api/exercises/:id", async (c) => {
+  const idParam = c.req.param("id");
+  const exerciseId = Number(idParam);
+
+  if (!Number.isInteger(exerciseId) || exerciseId <= 0) {
+    return c.json({ error: "Invalid exercise id" }, 400);
+  }
+
+  const rows = await sql`
+    SELECT id, title, description
+    FROM exercises
+    WHERE id = ${exerciseId}
+  `;
+
+  if (!rows.length) {
+    return c.body(null, 404);
+  }
+
+  const exercise = rows[0];
+  return c.json({
+    id: exercise.id,
+    title: exercise.title,
+    description: exercise.description,
+  });
+});
+
+// Create a new submission for an exercise
 app.post("/api/exercises/:id/submissions", async (c) => {
   const idParam = c.req.param("id");
   const exerciseId = Number(idParam);
@@ -112,6 +142,33 @@ app.post("/api/exercises/:id/submissions", async (c) => {
   const inserted = rows[0];
   await redis.lpush(QUEUE_NAME, inserted.id);
   return c.json({ id: inserted.id }, 201);
+});
+
+// Retrieve status information for a single submission
+app.get("/api/submissions/:id/status", async (c) => {
+  const idParam = c.req.param("id");
+  const submissionId = Number(idParam);
+
+  if (!Number.isInteger(submissionId) || submissionId <= 0) {
+    return c.json({ error: "Invalid submission id" }, 400);
+  }
+
+  // Do not cache this response: always hit the DB
+  const rows = await sql`
+    SELECT grading_status, grade
+    FROM exercise_submissions
+    WHERE id = ${submissionId}
+  `;
+
+  if (!rows.length) {
+    return c.body(null, 404);
+  }
+
+  const submission = rows[0];
+  return c.json({
+    grading_status: submission.grading_status,
+    grade: submission.grade,
+  });
 });
 
 export default app;
