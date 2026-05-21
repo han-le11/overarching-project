@@ -1,0 +1,6 @@
+---
+import Exercise from "../../components/Exercise.svelte";
+const { id } = Astro.params;
+---
+export const prerender = false;
+<Exercise id={id} client:load />

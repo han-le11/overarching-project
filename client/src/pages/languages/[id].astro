@@ -1,0 +1,6 @@
+---
+import LanguageExercises from '../../components/LanguageExercises.svelte';
+const { id } = Astro.params;
+---
+export const prerender = false;
+<LanguageExercises id={id} client:load />
